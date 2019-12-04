@@ -1,50 +1,74 @@
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
     "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
 
 
 .status {
-  text-align: center;
-  padding: 10px;
-  margin-bottom: 5px;
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 5px;
 }
 
 .board {
-  margin: 10px auto;
-  border: solid red 1px;
-  width: 480px;
-  height: 480px;
+    margin: 10px auto;
+    border: solid red 1px;
+    width: 480px;
+    height: 480px;
 }
 
 .square.black {
-  background: #000;
-  color: white;
+    background: #000;
+    color: white;
 
 }
 
 .square.white {
-  background: #fff;
-  color: #000;
+    background: #fff;
+    color: #000;
+}
+
+.square.slt.black,
+.square.slt.white {
+
+    background: blue;
+}
+
+.square.err.black,
+.square.err.white {
+
+    background: red;
+}
+
+.square.hgt.black,
+.square.hgt.white {
+
+    background: yellow;
+}
+
+.square.lst.black,
+.square.lst.white {
+
+    background: grey;
 }
 
 .square {
-  border: 1px solid #999;
-  float: left;
-  font-size: 24px;
-  font-weight: bold;
-  line-height: 34px;
-  padding: 0;
-  text-align: center;
-  height: 60px;
-  width: 60px;
+    border: 1px solid #999;
+    float: left;
+    font-size: 24px;
+    font-weight: bold;
+    line-height: 34px;
+    padding: 0;
+    text-align: center;
+    height: 60px;
+    width: 60px;
 }
