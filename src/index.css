@@ -72,3 +72,18 @@ code {
     height: 60px;
     width: 60px;
 }
+
+.check_status {
+
+    background: grey;
+    font-weight: bold;
+    font-size: 1.3em;
+    text-align: center;
+    margin: 0 auto;
+    width: 480px;
+}
+
+.check_status.in_check {
+
+    background: red;
+}

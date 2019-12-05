@@ -18,6 +18,11 @@ export default class Board extends React.Component {
             errorPos: -1,
             lastMovePos: -1,
             validMoves:[],
+            blackDownPiece:[],
+            whiteDownPiece:[],
+            kingIsInCheck: false,
+            blackPossession:[],
+            whitePossession:[],
         };
 
         this.handleStartTrigger = this.handleStartTrigger.bind(this);
@@ -28,9 +33,9 @@ export default class Board extends React.Component {
         const blackPiece = ['bR','bN','bB','bQ','bK','bP'];
         const whitePiece = ['wR','wN','wB','wQ','wK','wP'];
 
-
         if(this.state.xIsNext) {
             //White player turn.......
+
 
             if(this.state.selectedSquare === -1) {
                 //No piece is selected right now......
@@ -41,12 +46,20 @@ export default class Board extends React.Component {
                     if(whitePiece.indexOf(this.state.squares[i]) < 0) {
                         //clicked piece is not white....
 
-                        this.setState({...this.state, errorPos:i, highlightColor: 'err'});
+                        playInvalidMove();
+
+                        this.setState({
+                            ...this.state,
+                            errorPos:i,
+                            highlightColor: 'err'
+                        });
 
                     } else {
                         //clicked piece is white....
 
-                        let vm = getValidMoves(i, this.state.squares[i], this.state.squares);
+                        let inCheck = {black:false, white:false};
+
+                        let vm = getValidMoves(i, this.state.squares[i], this.state.squares, inCheck);
 
                         this.setState({
                             ...this.state,
@@ -58,7 +71,8 @@ export default class Board extends React.Component {
 
                 } else {
 
-
+                    // this is white turn and clicked on an empty square.... do nothing...
+                    //do a invalid sound..
                 }
 
 
@@ -69,14 +83,66 @@ export default class Board extends React.Component {
                     // clicked in occupied square....
 
                     if(this.state.selectedSquare === i) {
+                        // clicked the same selected square
 
                         this.setState({
                             ...this.state,
                             selectedSquare: -1,
+                            errorPos: -1,
                             validMoves:[]
                         });
-                    }
 
+                    } else {
+
+                        if(isValid(i, this.state.validMoves)) {
+
+                            const squares = this.state.squares.slice();
+                            const downPiece = this.state.blackDownPiece.slice();
+
+                            downPiece.push(this.state.squares[i]);
+
+                            squares[i] = this.state.selectedPiece;
+                            squares[this.state.selectedSquare] = null;
+
+                            if(this.state.selectedPiece === 'wP' && i>=56 && i<=63) {
+
+                                squares[i] = 'wQ'; //todo - give user options to choose
+                            }
+
+                            //.............................
+
+                            playCapture();
+
+                            let inCheck = checkIfKingIsChecked(i, squares[i], squares);
+                            let str = inCheck.black === true ? 'black' : (inCheck.white === true ? 'white' : false);
+
+                            this.setState({
+                                ...this.state,
+                                squares: squares,
+                                xIsNext: !this.state.xIsNext,
+                                selectedSquare: -1,
+                                selectedPiece: null,
+                                errorPos: -1,
+                                lastMovePos: i,
+                                highlightColor: '',
+                                validMoves:[],
+                                blackDownPiece:downPiece,
+                                kingIsInCheck: str,
+                            });
+
+
+                        } else {
+                            // clicked on a occupied invalid square...
+
+                            this.setState({
+                                ...this.state,
+                                errorPos: i,
+                                highlightColor: 'err'
+                            });
+
+                            playInvalidMove();
+                        }
+                    }
 
                 } else {
 
@@ -89,6 +155,9 @@ export default class Board extends React.Component {
                         squares[i] = this.state.selectedPiece;
                         squares[this.state.selectedSquare] = null;
 
+                        let inCheck = checkIfKingIsChecked(i, squares[i], squares);
+                        let str = inCheck.black === true ? 'black' : (inCheck.white === true ? 'white' : false);
+
                         this.setState({
                             squares: squares,
                             xIsNext: !this.state.xIsNext,
@@ -97,8 +166,11 @@ export default class Board extends React.Component {
                             errorPos: -1,
                             lastMovePos: i,
                             highlightColor: '',
-                            validMoves:[]
+                            validMoves:[],
+                            kingIsInCheck: str,
                         });
+
+                        playMove();
 
                     } else {
 
@@ -107,39 +179,56 @@ export default class Board extends React.Component {
                             errorPos: i,
                             highlightColor: 'err'
                         });
+
+                        playInvalidMove();
                     }
                 }
             }
 
         } else {
 
-            //black player......
+            //black player turn......
 
             if(this.state.selectedSquare === -1) {
                 //No black piece is selected
 
                 if(this.state.squares[i]) {
-
+                    // clicked on occupied square
 
                     if(blackPiece.indexOf(this.state.squares[i]) < 0) {
+                        // clicked piece is not black
 
-                        this.setState({...this.state, selectedSquare: -1, selectedPiece: null, errorPos:i, highlightColor: 'err'});
+                        playInvalidMove();
+
+                        this.setState({
+                            ...this.state,
+                            errorPos:i,
+                            validMoves:[],
+                        });
 
                     } else {
 
-                        //console.log('wtf....', this.state.xIsNext, this.state.selectedSquare, this.state.squares[i]);
+                        //clicked piece is black....
 
-                        this.setState({...this.state, selectedSquare: i, selectedPiece: this.state.squares[i], errorPos:i, highlightColor: 'slt'});
+                        let vm = getValidMoves(i, this.state.squares[i], this.state.squares);
+
+                        this.setState({
+                            ...this.state,
+                            selectedPiece: this.state.squares[i],
+                            selectedSquare: i,
+                            errorPos:-1,
+                            validMoves:vm,
+                        });
                     }
 
                 } else {
 
-
+                    //this black turn and clicked on a blank square ... we are allowing it..
+                    // do nothing...........................................................
                 }
 
-
             } else {
-                // A black piece is selected
+                // A black piece is selected by black player
 
                 if(this.state.squares[i]) {
                     // clicked on occupied square
@@ -149,26 +238,97 @@ export default class Board extends React.Component {
 
                         this.setState({
                             ...this.state,
-                            selectedSquare: -1
+                            selectedSquare: -1,
+                            errorPos: -1,
+                            validMoves:[]
                         });
+
+                    } else {
+
+                        if(isValid(i, this.state.validMoves)) {
+
+                            const squares = this.state.squares.slice();
+                            const downPiece = this.state.whiteDownPiece.slice();
+
+                            downPiece.push(this.state.squares[i]);
+
+                            squares[i] = this.state.selectedPiece;
+                            squares[this.state.selectedSquare] = null;
+
+                            if(this.state.selectedPiece === 'bP' && i>=0 && i<=7) {
+
+                                squares[i] = 'bQ'; //todo - give user options to choose
+                            }
+
+                            let inCheck = checkIfKingIsChecked(i, squares[i], squares);
+                            let str = inCheck.black === true ? 'black' : (inCheck.white === true ? 'white' : false);
+
+                            this.setState({
+                                ...this.state,
+                                squares: squares,
+                                xIsNext: !this.state.xIsNext,
+                                selectedSquare: -1,
+                                selectedPiece: null,
+                                errorPos: -1,
+                                lastMovePos: i,
+                                highlightColor: '',
+                                validMoves:[],
+                                whiteDownPiece:downPiece,
+                                kingIsInCheck: str,
+                            });
+
+                            playCapture();
+
+                        } else {
+
+                            this.setState({
+                                ...this.state,
+                                errorPos: i,
+                                highlightColor: 'err'
+                            });
+
+                            playInvalidMove();
+                        }
                     }
 
-
                 } else {
+                    // clicked on blank square...
 
-                    const squares = this.state.squares.slice();
+                    if(isValid(i, this.state.validMoves)) {
 
-                    squares[i] = this.state.selectedPiece;
-                    squares[this.state.selectedSquare] = null;
+                        const squares = this.state.squares.slice();
 
-                    this.setState({
-                        squares: squares,
-                        xIsNext: !this.state.xIsNext,
-                        selectedSquare: -1,
-                        selectedPiece: null,
-                        errorPos: -1,
-                        highlightColor: ''
-                    });
+                        squares[i] = this.state.selectedPiece;
+                        squares[this.state.selectedSquare] = null;
+
+                        let inCheck = checkIfKingIsChecked(i, squares[i], squares);
+                        let str = inCheck.black === true ? 'black' : (inCheck.white === true ? 'white' : false);
+
+
+                        this.setState({
+                            squares: squares,
+                            xIsNext: !this.state.xIsNext,
+                            selectedSquare: -1,
+                            selectedPiece: null,
+                            errorPos: -1,
+                            lastMovePos: i,
+                            highlightColor: '',
+                            validMoves:[],
+                            kingIsInCheck: str,
+                        });
+
+                        playMove();
+
+                    } else {
+
+                        this.setState({
+                            ...this.state,
+                            errorPos: i,
+                            highlightColor: 'err'
+                        });
+
+                        playInvalidMove();
+                    }
                 }
             }
         }
@@ -213,6 +373,8 @@ export default class Board extends React.Component {
         squares[62] = 'bN';
         squares[63] = 'bR';
 
+
+
         this.setState({
             squares: squares,
             xIsNext: true,
@@ -223,6 +385,11 @@ export default class Board extends React.Component {
             validMoves:[],
             lastMovePos: -1,
             squareSelected:false,
+            blackDownPiece:[],
+            whiteDownPiece:[],
+            kingIsInCheck: false,
+            blackPossession:[40,41,42,43,44,45,46,47],
+            whitePossession:[16,17,18,19,20,21,22,23],
         });
     }
 
@@ -249,8 +416,10 @@ export default class Board extends React.Component {
     render() {
 
         const status = 'Current move: ' + (this.state.xIsNext ? 'White' : 'Black');
+        const isInCheck = this.state.kingIsInCheck === false ? '' : this.state.kingIsInCheck + ' king is in check';
 
         const items = [];
+
         let clr = 'black';
 
         for(var k = 0; k < 64; k++) {
@@ -266,6 +435,7 @@ export default class Board extends React.Component {
         return (
             <div>
                 <div className="status">{status}</div>
+                <div className={this.state.kingIsInCheck === false ? 'check_status ' : 'check_status in_check'}> {isInCheck} &nbsp; </div>
                 <div className="board">
                     {items}
                 </div>
@@ -276,14 +446,108 @@ export default class Board extends React.Component {
     }
 }
 
+function checkIfKingIsChecked(currentPos, piece, squares) {
 
+    let tmp1, tmp2, tmp3, tmp4, inCheckObj = {};
 
-function getValidMoves(currentPos, piece, squares) {
+    inCheckObj.black = false;
+    inCheckObj.white = false;
+
+    switch(piece) {
+
+        case 'wP':
+
+            tmp1 = currentPos + 7;
+            tmp2 = currentPos + 9;
+            tmp3 = currentPos % 8;
+
+            if(tmp3 === 0) {
+
+                if(squares[tmp2] === 'bK') {
+
+                    inCheckObj.black = true;
+                }
+
+            } else if(tmp3 === 7) {
+
+                if(squares[tmp1] === 'bK') {
+
+                    inCheckObj.black = true;
+                }
+
+            } else {
+
+                if(squares[tmp1] === 'bK') {
+
+                    inCheckObj.black = true;
+                }
+
+                if(squares[tmp2] === 'bK') {
+
+                    inCheckObj.black = true;
+                }
+            }
+
+            break;
+
+        case 'bP':
+
+            tmp1 = currentPos - 7;
+            tmp2 = currentPos - 9;
+            tmp3 = currentPos % 8;
+
+            if(tmp3 === 0) {
+
+                if(squares[tmp1] === 'wK') {
+
+                    inCheckObj.white = true;
+                }
+
+            } else if(tmp3 === 7) {
+
+                if(squares[tmp2] === 'wK') {
+
+                    inCheckObj.white = true;
+                }
+
+            } else {
+
+                if(squares[tmp1] === 'wK') {
+
+                    inCheckObj.white = true;
+                }
+
+                if(squares[tmp2] === 'wK') {
+
+                    inCheckObj.white = true;
+                }
+            }
+
+            break;
+
+        case 'wQ':
+        case 'bQ':
+
+        case 'wB':
+        case 'bB':
+
+        case 'wN':
+        case 'bN':
+
+        case 'wR':
+        case 'bR':
+
+    }
+
+    return inCheckObj;
+}
+
+function getValidMoves(currentPos, piece, squares, inCheckObj) {
 
     const blackPiece = ['bR','bN','bB','bQ','bK','bP'];
     const whitePiece = ['wR','wN','wB','wQ','wK','wP'];
 
-    let tmp1, tmp2, tmp3, tmp4;
+    let tmp1, tmp2, tmp3, tmp4, mod;
     let ret = [];
 
     switch(piece) {
@@ -313,7 +577,6 @@ function getValidMoves(currentPos, piece, squares) {
                 tmp4 = currentPos % 8;
 
                 if(!squares[tmp1]) ret.push(tmp1);
-                if(squares[tmp1] && blackPiece.indexOf(squares[tmp1]) >= 0 ) ret.push(tmp1);
 
                 if(tmp4 === 0) {
 
@@ -334,12 +597,130 @@ function getValidMoves(currentPos, piece, squares) {
 
         case 'bP':
 
+            if(currentPos >= 48 && currentPos <= 55) {
 
+                tmp1 = currentPos - 8;
+                tmp2 = currentPos - 16;
+
+                if(!squares[tmp1]) ret.push(tmp1);
+                if(squares[tmp1] && whitePiece.indexOf(squares[tmp1]) >= 0 ) ret.push(tmp1);
+
+                if(!squares[tmp2] && !squares[tmp1]) ret.push(tmp2);
+
+                tmp1 = currentPos - 7;
+                tmp2 = currentPos - 9;
+
+                if(tmp1 >= 40 && squares[tmp1] && whitePiece.indexOf(squares[tmp1]) >= 0 ) ret.push(tmp1);
+                if(tmp2 <= 47 && squares[tmp2] && whitePiece.indexOf(squares[tmp2]) >= 0 ) ret.push(tmp2);
+
+            } else {
+
+                tmp1 = currentPos - 8;  //32-24
+                tmp2 = currentPos - 7;  //32-25
+                tmp3 = currentPos - 9;  //32-23
+                tmp4 = currentPos % 8;  //32-0
+
+                if(!squares[tmp1]) ret.push(tmp1);
+
+                if(tmp4 === 0) {
+
+                    if(squares[tmp2] && whitePiece.indexOf(squares[tmp2]) >= 0 ) ret.push(tmp2);
+
+                } else if(tmp4 === 7) {
+
+                    if(squares[tmp3] && whitePiece.indexOf(squares[tmp3]) >= 0 ) ret.push(tmp3);
+
+                } else {
+
+                    if(squares[tmp2] && whitePiece.indexOf(squares[tmp2]) >= 0 ) ret.push(tmp2);
+                    if(squares[tmp3] && whitePiece.indexOf(squares[tmp3]) >= 0 ) ret.push(tmp3);
+                }
+            }
+
+            return ret;
+
+        case 'wK':
+
+            mod = currentPos % 8;
+
+            let arr = [];
+
+            if(mod === 0) {
+
+                arr.push(currentPos + 1);   //32-33
+                arr.push(currentPos + 8);  // 32-40
+                arr.push(currentPos + 9);  // 32-41
+                arr.push(currentPos - 8);  // 32-24
+                arr.push(currentPos - 7);  // 32-25
+
+            } else if(mod === 7) {
+
+                arr.push(currentPos + 7);  //39-46
+                arr.push(currentPos + 8);  //39-47
+                arr.push(currentPos - 1);  //39-38
+                arr.push(currentPos - 8);  //39-31
+                arr.push(currentPos - 9);  //39-30
+
+            } else {
+
+                arr.push(currentPos + 1);   //32-33
+                arr.push(currentPos + 7);  //39-46
+                arr.push(currentPos + 8);  // 32-40
+                arr.push(currentPos + 9);  // 32-41
+                arr.push(currentPos - 1);  //39-38
+                arr.push(currentPos - 7);  // 32-25
+                arr.push(currentPos - 8);  //39-31
+                arr.push(currentPos - 9);  //39-30
+            }
+
+            tmp1 = currentPos + 8;
+            tmp2 = currentPos + 7;
+            tmp3 = currentPos + 9;
+
+
+            break;
+        case 'bK':
+
+            break;
+
+
+        case 'wN':
+        case 'bN':
     }
+
+    return ret;
 }
 
 
 function isValid(pos, validMovesArr) {
 
-    return validMovesArr.length > 0 && validMovesArr.indexOf(pos) >= 0;
+    return validMovesArr && validMovesArr.length > 0 && validMovesArr.indexOf(pos) >= 0;
 }
+
+
+function playMove() {
+
+    let snd = new Audio("/audio/chess_move.mp3"); // buffers automatically when created
+    snd.play();
+
+    return true;
+}
+
+
+function playInvalidMove() {
+
+    let snd = new Audio("/audio/error_move3.mp3"); // buffers automatically when created
+    snd.play();
+
+    return true;
+}
+
+
+function playCapture() {
+
+    let snd = new Audio("/audio/chess_capture1.mp3"); // buffers automatically when created
+    snd.play();
+
+    return true;
+}
+
