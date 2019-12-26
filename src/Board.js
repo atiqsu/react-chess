@@ -28,6 +28,7 @@ export default class Board extends React.Component {
         this.handleStartTrigger = this.handleStartTrigger.bind(this);
     }
 
+
     handleClick(i) {
 
         const blackPiece = ['bR','bN','bB','bQ','bK','bP'];
